@@ -11,8 +11,20 @@ from .models import OTP
 from django.contrib.auth import authenticate  # Import authenticate function
 from django.views import View
 from django.views.decorators.csrf import ensure_csrf_cookie
-
-
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import AllowAny
+from django.contrib.auth.models import User
+from rest_framework.permissions import IsAuthenticated
+from django.core.exceptions import PermissionDenied
+from .models import Product
+from django.core.exceptions import ValidationError
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from rest_framework.permissions import IsAdminUser
+from rest_framework.decorators import permission_classes
+from django.utils.decorators import method_decorator
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -95,23 +107,6 @@ class VerifyOTPView(APIView):
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
-from django.contrib.auth import authenticate
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.permissions import AllowAny
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.contrib.auth.models import User
-
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from rest_framework import status
-from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import check_password
-from rest_framework_simplejwt.tokens import RefreshToken
-
 User = get_user_model()
 
 class LoginView(APIView):
@@ -142,14 +137,6 @@ class LoginView(APIView):
                 })
 
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from django.core.exceptions import PermissionDenied
-from django.utils import timezone
-from .models import Product
-from django.core.exceptions import ValidationError
 
 
 class ProductUploadView(APIView):
@@ -210,10 +197,7 @@ class ProductUploadView(APIView):
                 "created_at": product.created_at
             }
         }, status=status.HTTP_201_CREATED)
-from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework import status
+
 
 class CheckSuperuserView(APIView):
     permission_classes = [IsAuthenticated]
@@ -224,61 +208,35 @@ class CheckSuperuserView(APIView):
         return Response({"is_superuser": False}, status=status.HTTP_200_OK)
 # app/views.py
 
-from django.shortcuts import render
-from .models import Product
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly  # Allows authenticated users to perform actions
 
-class ProductListView(APIView):
-    permission_classes = [IsAuthenticatedOrReadOnly]  # Allow anyone to view, but only authenticated can modify
-
+class ProductListView(View):
     def get(self, request):
-        products = Product.objects.all()  # Fetch all products
-        product_data = [
-            {
+        products = Product.objects.all()
+        product_data = []
+
+        for product in products:
+            product_data.append({
                 'id': product.id,
                 'name': product.name,
                 'description': product.description,
-                'price': product.price,
-                'image_url': product.image.url if product.image else None,
-                'created_at': product.created_at
-            }
-            for product in products
-        ]
-        return Response(product_data)
-from django.http import JsonResponse
-from django.views import View
-from .models import Product  # Replace with your actual model
-import json
+                'price': float(product.price),  # Convert Decimal to float
+                'image_url': request.build_absolute_uri(product.image.url) if product.image else None
+            })
 
-class UpdateProductView(View):
-    permission_classes = [IsAuthenticated]  # Ensure user is authenticated
+        return JsonResponse(product_data, safe=False)
 
-    def post(self, request, product_id):
-        try:
-            data = json.loads(request.body)
-            product = Product.objects.get(id=product_id)
-            product.name = data.get('name', product.name)
-            product.price = data.get('price', product.price)
-            product.description = data.get('description', product.description)
-            product.save()
-            return JsonResponse({'success': True, 'message': 'Product updated successfully!'})
-        except Product.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Product not found!'}, status=404)
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)}, status=500)
-from django.http import JsonResponse
-from django.views import View
-from django.contrib.auth.decorators import login_required
-from django.utils.decorators import method_decorator
-from rest_framework.permissions import IsAdminUser
-from rest_framework.decorators import permission_classes
+       
 
-@method_decorator(login_required, name='dispatch')  # Requires login
-@permission_classes([IsAdminUser])  # Requires user to be an admin or superuser
-class DeleteProductView(View):
+class DeleteProductView(APIView):
+    permission_classes = [IsAuthenticated,IsAdminUser]  # Ensure only admins can delete
+
     def delete(self, request, product_id):
+        if not request.user.is_authenticated:
+            return JsonResponse({'success': False, 'message': 'Authentication required.'}, status=401)
+
+        if not request.user.is_staff:
+            return JsonResponse({'success': False, 'message': 'You do not have permission to delete products.'}, status=403)
+
         try:
             product = Product.objects.get(id=product_id)
             product.delete()
@@ -291,11 +249,7 @@ class DeleteProductView(View):
 @ensure_csrf_cookie
 def csrf(request):
     return JsonResponse({'message': 'CSRF cookie set'})
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.exceptions import InvalidToken
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
+
 
 class RefreshTokenView(APIView):
     def post(self, request):
@@ -316,3 +270,50 @@ class RefreshTokenView(APIView):
         except Exception as e:
             # Generic error handling
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+from django.http import JsonResponse
+from django.views import View
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.contrib.auth.models import User
+from .models import Product
+import json
+
+from django.http import JsonResponse
+from django.views import View
+from .models import Product
+import json
+
+class UpdateProductView(View):
+     permission_classes = [IsAuthenticated,IsAdminUser]  # Ensure only admins can delete
+
+     def put(self, request, product_id):
+        try:
+            # Ensure you parse the request data correctly
+            data = json.loads(request.body.decode('utf-8'))  # Handle the incoming JSON data
+            product = Product.objects.get(id=product_id)  # Fetch the product by ID
+
+            # Update product fields
+            product.name = data.get('name', product.name)
+            product.price = data.get('price', product.price)
+            product.description = data.get('description', product.description)
+
+            if 'image' in request.FILES:  # Check if image is uploaded
+                product.image = request.FILES['image']  # Set the new image
+
+            product.save()  # Save the updated product
+
+            # Return a success response with updated product data
+            updated_product = {
+                'id': product.id,
+                'name': product.name,
+                'description': product.description,
+                'price': product.price,
+                'image': product.image.url if product.image else None,
+            }
+
+            return JsonResponse({'success': True, 'message': 'Product updated successfully!', 'product': updated_product})
+
+        except Product.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Product not found!'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)

@@ -1,6 +1,8 @@
 from django.urls import path
 from .views import RegisterView, VerifyOTPView, LoginView,ProductUploadView,CheckSuperuserView,ProductListView,UpdateProductView, DeleteProductView,RefreshTokenView
 from . import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -17,3 +19,5 @@ urlpatterns = [
 
 
 ]
+if settings.DEBUG:  # Serve media files only in development
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

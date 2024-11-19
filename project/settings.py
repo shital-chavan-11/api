@@ -27,6 +27,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 CORS_ALLOW_CREDENTIALS = True
+import os
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 # Application definition
@@ -158,5 +162,12 @@ STATIC_URL = 'static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
+from datetime import timedelta  # Import timedelta here
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),  # Access token will expire in 15 minutes
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # Refresh token will expire in 7 days
+    'ROTATE_REFRESH_TOKENS': True,  # Whether to rotate the refresh token after each use
+    'BLACKLIST_AFTER_ROTATION': True,  # Optionally blacklist old refresh tokens
+}
