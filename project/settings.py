@@ -26,9 +26,15 @@ SECRET_KEY = 'django-insecure-_9n7#i(i%+u%@#h%33smjx(l-^t=$e*u=rfgvnu^r-e-$j!dg!
 DEBUG = True
 
 ALLOWED_HOSTS = []
+CORS_ALLOW_CREDENTIALS = True
 
 
 # Application definition
+CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:3000', 'http://localhost:3000']
+CORS_ORIGIN_WHITELIST = ['http://127.0.0.1:3000', 'http://localhost:3000']
+
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -39,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'app',
     'rest_framework',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -46,6 +53,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'corsheaders.middleware.CorsMiddleware', 
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -68,9 +76,13 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'chavanshital3108@gmail.com'  # Replace with your email address
 EMAIL_HOST_PASSWORD = 'sdvz cvtd amjp csjj'  # Replace with your email password or app password
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Default "from" email address
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # Add this line to allow your React frontend
+]
 
 TEMPLATES = [
     {
@@ -90,6 +102,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'project.wsgi.application'
 
+# settings.py
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -131,6 +147,8 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
+
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 
 # Static files (CSS, JavaScript, Images)

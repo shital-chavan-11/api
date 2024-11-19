@@ -35,3 +35,16 @@ class OTPAdmin(admin.ModelAdmin):
     list_filter = ['expires_at']
     search_fields = ['user__username', 'otp_code']
     ordering = ['-created_at']
+# app/admin.py
+
+from django.contrib import admin
+from .models import Product
+
+# Optionally, you can customize the display of your Product model
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ('name', 'price', 'created_at')  # Fields to display in the list view
+    search_fields = ('name',)  # Allow searching by product name
+    list_filter = ('created_at',)  # Allow filtering by creation date
+
+# Register the Product model with the custom admin
+admin.site.register(Product, ProductAdmin)
