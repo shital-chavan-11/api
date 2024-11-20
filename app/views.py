@@ -25,6 +25,7 @@ from django.contrib.auth.decorators import login_required
 from rest_framework.permissions import IsAdminUser
 from rest_framework.decorators import permission_classes
 from django.utils.decorators import method_decorator
+from .models import Like, Product
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -209,12 +210,26 @@ class CheckSuperuserView(APIView):
 # app/views.py
 
 
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.views import View
+from .models import Product
+
 class ProductListView(View):
     def get(self, request):
+        # Fetch all products
         products = Product.objects.all()
-        product_data = []
+        
+        # Pagination logic
+        page_number = request.GET.get('page', 1)  # Get the page number from request (default to 1)
+        page_size = request.GET.get('page_size', 12)  # Get the page size (default to 10 items per page)
 
-        for product in products:
+        paginator = Paginator(products, page_size)  # Paginate the queryset
+        page = paginator.get_page(page_number)  # Get the requested page
+
+        # Prepare product data to send in response
+        product_data = []
+        for product in page:
             product_data.append({
                 'id': product.id,
                 'name': product.name,
@@ -222,8 +237,15 @@ class ProductListView(View):
                 'price': float(product.price),  # Convert Decimal to float
                 'image_url': request.build_absolute_uri(product.image.url) if product.image else None
             })
+        
+        # Return paginated response
+        return JsonResponse({
+            'total_items': paginator.count,
+            'total_pages': paginator.num_pages,
+            'current_page': page.number,
+            'results': product_data  # The paginated results
+        })
 
-        return JsonResponse(product_data, safe=False)
 
        
 
@@ -317,3 +339,42 @@ class UpdateProductView(View):
             return JsonResponse({'success': False, 'message': 'Product not found!'}, status=404)
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Product, Like  # Import your models
+
+class LikeProductView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, product_id):
+        """Fetch the like count and check if the user has liked the product."""
+        try:
+            product = Product.objects.get(id=product_id)
+            like_count = product.likes.count()
+            user_liked = Like.objects.filter(user=request.user, product=product).exists()
+            return Response({"likes": like_count, "user_liked": user_liked}, status=status.HTTP_200_OK)
+        except Product.DoesNotExist:
+            return Response({"message": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, product_id):
+        """Handle liking and unliking the product."""
+        try:
+            user = request.user
+            product = Product.objects.get(id=product_id)
+
+            # Check if the user already liked the product
+            existing_like = Like.objects.filter(user=user, product=product).first()
+            if existing_like:
+                # If a like exists, delete it (unlike the product)
+                existing_like.delete()
+                like_count = product.likes.count()
+                return Response({"likes": like_count, "user_liked": False}, status=status.HTTP_200_OK)
+            
+            # Otherwise, create a new like
+            Like.objects.create(user=user, product=product)
+            like_count = product.likes.count()
+            return Response({"likes": like_count, "user_liked": True}, status=status.HTTP_201_CREATED)
+
+        except Product.DoesNotExist:
+            return Response({"message": "Product not found."}, status=status.HTTP_404_NOT_FOUND)

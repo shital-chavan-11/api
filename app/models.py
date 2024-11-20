@@ -3,7 +3,7 @@ from django.db import models
 import random
 from django.utils import timezone
 from datetime import timedelta
-
+from django.conf import settings 
 class CustomUser(AbstractUser):
     phone_number = models.CharField(max_length=15)
     address = models.TextField()
@@ -42,3 +42,7 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+class Like(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="likes")
+    created_at = models.DateTimeField(auto_now_add=True)

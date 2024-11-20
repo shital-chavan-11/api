@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegisterView, VerifyOTPView, LoginView,ProductUploadView,CheckSuperuserView,ProductListView,UpdateProductView, DeleteProductView,RefreshTokenView
+from .views import RegisterView, VerifyOTPView, LoginView,ProductUploadView,CheckSuperuserView,ProductListView,UpdateProductView, DeleteProductView,RefreshTokenView, LikeProductView
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
@@ -15,9 +15,7 @@ urlpatterns = [
     path('delete-product/<int:product_id>/', DeleteProductView.as_view(), name='delete-product'),
         path('csrf/', views.csrf, name='csrf'),
             path('api/token/refresh/', RefreshTokenView.as_view(), name='token_refresh'),
-
-
-
+          path('like/<int:product_id>/', LikeProductView.as_view(), name='like_product'),
 ]
 if settings.DEBUG:  # Serve media files only in development
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
