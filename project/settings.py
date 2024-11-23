@@ -24,7 +24,9 @@ SECRET_KEY = 'django-insecure-_9n7#i(i%+u%@#h%33smjx(l-^t=$e*u=rfgvnu^r-e-$j!dg!
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
+CSRF_COOKIE_NAME = "csrftoken"
+CSRF_COOKIE_SECURE = True  # Set to True in production if using HTTPS
+CSRF_HEADER_NAME = "X-CSRFToken"  # The header name in the frontend request
 ALLOWED_HOSTS = []
 CORS_ALLOW_CREDENTIALS = True
 import os
@@ -139,7 +141,11 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
+# settings.py
+CSRF_TRUSTED_ORIGINS = ['http://localhost:3000']
+CORS_ALLOWED_ORIGINS = ['http://localhost:3000']
+CORS_ALLOW_CREDENTIALS = True  # Allow cookies to be included in requests
+CSRF_COOKIE_HTTPONLY = False
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
@@ -166,8 +172,14 @@ from datetime import timedelta  # Import timedelta here
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),  # Access token will expire in 15 minutes
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=20),  # Access token will expire in 15 minutes
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # Refresh token will expire in 7 days
     'ROTATE_REFRESH_TOKENS': True,  # Whether to rotate the refresh token after each use
     'BLACKLIST_AFTER_ROTATION': True,  # Optionally blacklist old refresh tokens
 }
+# settings.py
+
+# Media files settings
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+SESSION_COOKIE_SAMESITE = 'None' 

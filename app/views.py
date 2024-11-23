@@ -248,6 +248,27 @@ class ProductListView(View):
 
 
        
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from app.models import Product
+from django.views import View
+
+class ProductDetailView(View):
+    def get(self, request, product_id):
+        # Fetch the product or return a 404 if not found
+        product = get_object_or_404(Product, id=product_id)
+        
+        # Prepare product data to send back as JSON
+        product_data = {
+            'id': product.id,
+            'name': product.name,
+            'description': product.description,
+            'price': float(product.price),  # Ensure price is sent as float
+            'image_url': request.build_absolute_uri(product.image.url) if product.image else None,
+        }
+        
+        # Return product data as JSON
+        return JsonResponse(product_data)
 
 class DeleteProductView(APIView):
     permission_classes = [IsAuthenticated,IsAdminUser]  # Ensure only admins can delete
@@ -292,53 +313,6 @@ class RefreshTokenView(APIView):
         except Exception as e:
             # Generic error handling
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-from django.http import JsonResponse
-from django.views import View
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from django.contrib.auth.models import User
-from .models import Product
-import json
-
-from django.http import JsonResponse
-from django.views import View
-from .models import Product
-import json
-
-class UpdateProductView(View):
-     permission_classes = [IsAuthenticated,IsAdminUser]  # Ensure only admins can delete
-
-     def put(self, request, product_id):
-        try:
-            # Ensure you parse the request data correctly
-            data = json.loads(request.body.decode('utf-8'))  # Handle the incoming JSON data
-            product = Product.objects.get(id=product_id)  # Fetch the product by ID
-
-            # Update product fields
-            product.name = data.get('name', product.name)
-            product.price = data.get('price', product.price)
-            product.description = data.get('description', product.description)
-
-            if 'image' in request.FILES:  # Check if image is uploaded
-                product.image = request.FILES['image']  # Set the new image
-
-            product.save()  # Save the updated product
-
-            # Return a success response with updated product data
-            updated_product = {
-                'id': product.id,
-                'name': product.name,
-                'description': product.description,
-                'price': product.price,
-                'image': product.image.url if product.image else None,
-            }
-
-            return JsonResponse({'success': True, 'message': 'Product updated successfully!', 'product': updated_product})
-
-        except Product.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Product not found!'}, status=404)
-        except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)}, status=500)
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -378,3 +352,144 @@ class LikeProductView(APIView):
 
         except Product.DoesNotExist:
             return Response({"message": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views import View
+from django.core.exceptions import ObjectDoesNotExist
+from .models import Product
+from django.core.files.storage import default_storage
+from django.http import JsonResponse
+from django.views import View
+from django.core.exceptions import ObjectDoesNotExist
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from app.models import Product  # Import your Product model correctly
+
+class UpdateProductView(View):
+    def put(self, request, id):
+        try:
+            product = Product.objects.get(id=id)
+            name = request.POST.get("name")
+            description = request.POST.get("description")
+            price = request.POST.get("price")
+            image = request.FILES.get("image")
+
+            if not name or not description or not price:
+                return JsonResponse({"error": "Missing required fields"}, status=400)
+
+            product.name = name
+            product.description = description
+            product.price = price
+            if image:
+                product.image = image
+
+            product.save()
+            return JsonResponse({"message": "Product updated successfully"}, status=200)
+        except Product.DoesNotExist:
+            return JsonResponse({"error": "Product not found"}, status=404)
+from django.http import JsonResponse
+from django.views import View
+from django.shortcuts import get_object_or_404
+from .models import Product, Cart, CartItem
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
+from django.http import JsonResponse
+from django.views import View
+from django.contrib.auth.mixins import LoginRequiredMixin
+from .models import Product, Cart, CartItem
+from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from rest_framework.permissions import IsAuthenticated
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.views import View
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.mixins import AccessMixin
+from .models import Product, Cart, CartItem
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
+class AddToCartView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, product_id):
+        product = get_object_or_404(Product, id=product_id)
+        cart, _ = Cart.objects.get_or_create(user=request.user)
+        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
+        
+        if not created:
+            cart_item.quantity += 1
+            cart_item.save()
+        
+        return Response({
+            "success": True,
+            "message": f"Added {product.name} to your cart.",
+            "cart_quantity": cart_item.quantity,
+        })
+
+from django.shortcuts import render, get_object_or_404
+from django.views import View
+from django.contrib.auth.mixins import LoginRequiredMixin
+from .models import Cart, CartItem
+
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.authentication import TokenAuthentication
+from .models import Cart, CartItem
+
+class CartView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            cart = request.user.cart  # Assuming a OneToOne relationship between User and Cart
+            cart_items = CartItem.objects.filter(cart=cart).select_related('product')
+            total_price = sum(item.product.price * item.quantity for item in cart_items)
+
+            data = {
+                'cart_items': [
+                    {
+                        'id': item.id,
+                        'product': {
+                            'id': item.product.id,
+                            'name': item.product.name,
+                            'price': item.product.price,
+                        },
+                        'quantity': item.quantity,
+                        'subtotal': item.product.price * item.quantity,
+                    }
+                    for item in cart_items
+                ],
+                'total_price': total_price,
+            }
+            return Response(data)
+        except Cart.DoesNotExist:
+            return Response({'error': 'Cart not found.'}, status=404)
+
+from django.http import JsonResponse
+from django.views import View
+from django.contrib.auth.mixins import LoginRequiredMixin
+from .models import Cart
+
+class CartCountView(LoginRequiredMixin, View):
+    def get(self, request):
+        try:
+            # Retrieve the user's cart
+            cart = request.user.cart  # Assuming each user has a cart related to them
+            cart_count = cart.cartitem_set.count()  # Count the number of items in the user's cart
+        except Cart.DoesNotExist:
+            # If the user does not have a cart, return count as 0
+            cart_count = 0
+
+        return JsonResponse({'cart_count': cart_count})
