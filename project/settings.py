@@ -24,8 +24,8 @@ SECRET_KEY = 'django-insecure-_9n7#i(i%+u%@#h%33smjx(l-^t=$e*u=rfgvnu^r-e-$j!dg!
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-CSRF_COOKIE_NAME = "csrftoken"
-CSRF_COOKIE_SECURE = True  # Set to True in production if using HTTPS
+# CSRF_COOKIE_NAME = "csrftoken"
+# CSRF_COOKIE_SECURE = True  # Set to True in production if using HTTPS
 CSRF_HEADER_NAME = "X-CSRFToken"  # The header name in the frontend request
 ALLOWED_HOSTS = []
 CORS_ALLOW_CREDENTIALS = True
@@ -34,9 +34,10 @@ import os
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10 MB limit (adjust as needed)
 
 # Application definition
-CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:3000', 'http://localhost:3000']
+# CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:3000', 'http://localhost:3000']
 CORS_ORIGIN_WHITELIST = ['http://127.0.0.1:3000', 'http://localhost:3000']
 
 SESSION_COOKIE_SAMESITE = 'Lax'
@@ -58,7 +59,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'corsheaders.middleware.CorsMiddleware', 
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
